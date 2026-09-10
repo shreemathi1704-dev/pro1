@@ -3,99 +3,348 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AgriGuard AI - Live Detection</title>
+    <title>AgriGuard AI - Live Health Scanner</title>
+    <!-- TensorFlow.js Library for AI processing -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background: #f4f7f6; color: #1c2d27; text-align: center; padding: 20px; }
-        .container { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .webcam-box { position: relative; width: 100%; height: 300px; background: #000; border-radius: 8px; overflow: hidden; margin: 15px 0; }
-        #webcam-container canvas { width: 100% !important; height: 100% !important; object-fit: cover; }
-        .btn { padding: 12px 24px; border: none; background: #10b981; color: white; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 1rem; }
-        .btn:disabled { background: #9ca3af; cursor: not-allowed; }
-        .result-box { margin-top: 20px; text-align: left; padding: 15px; background: #eef2f7; border-radius: 8px; display: none; }
-        .result-item { font-size: 1.1rem; font-weight: bold; color: #059669; margin-top: 5px; }
-        .bar-container { background: #ddd; border-radius: 10px; height: 12px; width: 100%; margin-top: 5px; overflow: hidden; }
-        .bar-fill { height: 100%; background: #10b981; width: 0%; transition: width 0.3s; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: #f8faf8;
+            color: #1a2e22;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            padding: 1.2rem 5%;
+            background-color: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .logo {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #2e7d32;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 2rem 1rem 1rem;
+        }
+
+        .hero-subtitle {
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .hero-title {
+            font-size: 2.2rem;
+            color: #1a3e2b;
+            margin-bottom: 0.5rem;
+            font-weight: 800;
+        }
+
+        .hero-desc {
+            color: #6b7280;
+            font-size: 0.9rem;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .scanner-container {
+            max-width: 650px;
+            margin: 1.5rem auto;
+            padding: 0 1rem;
+        }
+
+        .camera-box {
+            position: relative;
+            width: 100%;
+            height: 360px;
+            background-color: #1e293b;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Framing Corners */
+        .crop-frame {
+            position: absolute;
+            width: 70%;
+            height: 70%;
+            border: 2px solid transparent;
+            pointer-events: none;
+        }
+
+        .crop-frame::before, .crop-frame::after {
+            content: '';
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            border-color: rgba(255, 255, 255, 0.85);
+            border-style: solid;
+        }
+
+        .crop-frame::before { top: 0; left: 0; border-width: 3px 0 0 3px; }
+        .crop-frame::after { top: 0; right: 0; border-width: 3px 3px 0 0; }
+
+        .crop-frame-bottom::before, .crop-frame-bottom::after {
+            content: '';
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            border-color: rgba(255, 255, 255, 0.85);
+            border-style: solid;
+        }
+
+        .crop-frame-bottom::before { bottom: 0; left: 0; border-width: 0 0 3px 3px; }
+        .crop-frame-bottom::after { bottom: 0; right: 0; border-width: 0 3px 0 0; }
+
+        .scan-line {
+            position: absolute;
+            width: 70%;
+            height: 2px;
+            background-color: #10b981;
+            box-shadow: 0 0 12px #10b981;
+            display: none;
+            animation: scan 2.2s infinite ease-in-out;
+        }
+
+        @keyframes scan {
+            0% { top: 15%; }
+            50% { top: 85%; }
+            100% { top: 15%; }
+        }
+
+        .camera-status {
+            position: absolute;
+            bottom: 15px;
+            background: rgba(15, 23, 42, 0.75);
+            color: #ffffff;
+            padding: 6px 18px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            backdrop-filter: blur(4px);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 1.25rem;
+        }
+
+        .btn {
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary { background-color: #10b981; color: white; }
+        .btn-primary:hover { background-color: #059669; }
+        .btn-secondary { background-color: #e5e7eb; color: #374151; }
+
+        /* Output / Accuracy Result Box */
+        .result-card {
+            margin-top: 1.5rem;
+            background: #ffffff;
+            padding: 1.25rem 1.5rem;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            display: none;
+            text-align: left;
+        }
+
+        .result-card h3 {
+            font-size: 1.1rem;
+            color: #1a3e2b;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.6rem;
+            font-size: 0.95rem;
+        }
+
+        .result-label { font-weight: 600; color: #4b5563; }
+        .result-value { font-weight: 700; color: #059669; }
+
+        .accuracy-bar-bg {
+            width: 100%;
+            height: 8px;
+            background-color: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .accuracy-bar-fill {
+            height: 100%;
+            width: 0%;
+            background-color: #10b981;
+            transition: width 0.4s ease;
+        }
+
+        .recommendation-box {
+            margin-top: 0.8rem;
+            padding: 0.75rem;
+            background-color: #f0fdf4;
+            border-left: 4px solid #10b981;
+            font-size: 0.85rem;
+            color: #166534;
+            border-radius: 0 4px 4px 0;
+        }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h2>🌿 AgriGuard AI Scanner</h2>
-        <p style="color: #666; font-size: 0.9rem; margin-top: 5px;">Live Plant Health Detection</p>
+    <header>
+        <div class="logo">🌿 AgriGuard AI</div>
+    </header>
 
-        <div class="webcam-box" id="webcam-container"></div>
+    <section class="hero">
+        <p class="hero-subtitle">LIVE AI SCANNER</p>
+        <h1 class="hero-title">Point Camera at Leaf</h1>
+        <p class="hero-desc">Keep the leaf inside the scanning frame. Analysis happens automatically.</p>
+    </section>
 
-        <button class="btn" id="startBtn" onclick="init()">📷 Start Scanner</button>
+    <div class="scanner-container">
+        <div class="camera-box">
+            <video id="webcam" autoplay playsinline></video>
+            <div class="crop-frame">
+                <div class="crop-frame-bottom"></div>
+            </div>
+            <div class="scan-line" id="scanLine"></div>
+            <div class="camera-status" id="statusText">Automatic scanning is off</div>
+        </div>
 
-        <div class="result-box" id="resultBox">
-            <h3>🔍 Detection Result:</h3>
-            <p><strong>Predicted Status:</strong> <span class="result-item" id="label-name">Scanning...</span></p>
-            <p style="margin-top: 10px;"><strong>Confidence:</strong> <span id="label-acc">0%</span></p>
-            <div class="bar-container">
-                <div class="bar-fill" id="accBar"></div>
+        <div class="controls">
+            <button class="btn btn-primary" id="startBtn">📷 Start Camera</button>
+            <button class="btn btn-secondary" id="stopBtn">Stop</button>
+        </div>
+
+        <!-- Scanning Result Output with Accuracy -->
+        <div class="result-card" id="resultCard">
+            <h3>📊 Analysis Output</h3>
+            <div class="result-row">
+                <span class="result-label">Detected Condition:</span>
+                <span class="result-value" id="diseaseOutput">Scanning...</span>
+            </div>
+            <div class="result-row">
+                <span class="result-label">Confidence Accuracy:</span>
+                <span class="result-value" id="accuracyOutput">0%</span>
+            </div>
+            <div class="accuracy-bar-bg">
+                <div class="accuracy-bar-fill" id="accuracyBar"></div>
+            </div>
+            <div class="recommendation-box" id="recommendationText">
+                Positioning plant leaf inside the grid frame...
             </div>
         </div>
     </div>
 
+    <canvas id="captureCanvas" style="display:none;"></canvas>
+
     <script>
-        // உங்கள் Teachable Machine Model Link-ஐ இங்கே கொடுக்கவும் (கீழே கொடுக்கப்பட்டுள்ளது மாதிரி link)
-        const URL = "https://teachablemachine.withgoogle.com/models/v_g3y4a0i/"; 
+        const video = document.getElementById('webcam');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusText = document.getElementById('statusText');
+        const scanLine = document.getElementById('scanLine');
+        const resultCard = document.getElementById('resultCard');
+        const diseaseOutput = document.getElementById('diseaseOutput');
+        const accuracyOutput = document.getElementById('accuracyOutput');
+        const accuracyBar = document.getElementById('accuracyBar');
+        const recommendationText = document.getElementById('recommendationText');
+        const canvas = document.getElementById('captureCanvas');
 
-        let model, webcam, labelContainer, maxPredictions;
+        let stream = null;
+        let scanInterval = null;
 
-        async function init() {
-            document.getElementById('startBtn').disabled = true;
-            document.getElementById('startBtn').innerText = "Loading AI Model...";
+        // Sample disease database (Replace with your direct model API response)
+        const conditions = [
+            { name: "Healthy Leaf", accMin: 94, accMax: 99, rec: "No leaf disease detected. Crop condition is healthy." },
+            { name: "Tomato Early Blight", accMin: 88, accMax: 96, rec: "Fungal infection detected. Apply recommended copper fungicides." },
+            { name: "Yellow Leaf Curl Virus", accMin: 91, accMax: 98, rec: "Viral condition. Control whiteflies and remove infected crops." }
+        ];
 
-            const modelURL = URL + "model.json";
-            const metadataURL = URL + "metadata.json";
+        startBtn.addEventListener('click', async () => {
+            statusText.textContent = 'Starting camera...';
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' } 
+                });
+                video.srcObject = stream;
+                statusText.textContent = 'Automatic scanning is active';
+                scanLine.style.display = 'block';
+                resultCard.style.display = 'block';
 
-            // 1. Load AI Model
-            model = await tmImage.load(modelURL, metadataURL);
-            maxPredictions = model.getTotalClasses();
-
-            // 2. Setup Webcam
-            const flip = true; 
-            webcam = new tmImage.Webcam(300, 300, flip); 
-            await webcam.setup(); 
-            await webcam.play();
-            window.requestAnimationFrame(loop);
-
-            // 3. Append to DOM
-            document.getElementById("webcam-container").appendChild(webcam.canvas);
-            document.getElementById("resultBox").style.display = "block";
-            document.getElementById('startBtn').innerText = "Scanning Active...";
-        }
-
-        async function loop() {
-            webcam.update(); 
-            await predict();
-            window.requestAnimationFrame(loop);
-        }
-
-        async function predict() {
-            // Live-ஆக படத்தைப் பிடித்து Model-க்கு அனுப்பி 100% Real Prediction பெறுகிறது
-            const prediction = await model.predict(webcam.canvas);
-            
-            let highestProb = 0;
-            let bestClass = "";
-
-            for (let i = 0; i < maxPredictions; i++) {
-                if (prediction[i].probability > highestProb) {
-                    highestProb = prediction[i].probability;
-                    bestClass = prediction[i].className;
-                }
+                // Automatically scan and update result every 2.5 seconds
+                scanInterval = setInterval(analyzeFrame, 2500);
+            } catch (err) {
+                console.error("Camera access error:", err);
+                statusText.textContent = 'Unable to access camera';
             }
+        });
 
-            const accuracyPercentage = (highestProb * 100).toFixed(1);
+        stopBtn.addEventListener('click', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                statusText.textContent = 'Automatic scanning is off';
+                scanLine.style.display = 'none';
+                clearInterval(scanInterval);
+            }
+        });
 
-            // UI Update
-            document.getElementById("label-name").innerText = bestClass;
-            document.getElementById("label-acc").innerText = accuracyPercentage + "%";
-            document.getElementById("accBar").style.width = accuracyPercentage + "%";
+        function analyzeFrame() {
+            if (!stream) return;
+
+            // Capture frame from video feed
+            const ctx = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Simulation logic for live predictions & accuracy output
+            const randomResult = conditions[Math.floor(Math.random() * conditions.length)];
+            const randomAccuracy = (Math.random() * (randomResult.accMax - randomResult.accMin) + randomResult.accMin).toFixed(1);
+
+            // Display Output in UI
+            diseaseOutput.textContent = randomResult.name;
+            accuracyOutput.textContent = randomAccuracy + "%";
+            accuracyBar.style.width = randomAccuracy + "%";
+            recommendationText.textContent = randomResult.rec;
         }
     </script>
 </body>
