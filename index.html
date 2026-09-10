@@ -3,100 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AgriGuard AI - Real Detection</title>
+    <title>AgriGuard AI - Live Detection</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #f4f7f6; color: #1c2d27; text-align: center; padding: 20px; }
-        .camera-box { position: relative; width: 100%; max-width: 500px; height: 350px; margin: 20px auto; background: #000; border-radius: 12px; overflow: hidden; }
-        video { width: 100%; height: 100%; object-fit: cover; }
-        .scan-line { position: absolute; width: 100%; height: 2px; background: #10b981; box-shadow: 0 0 10px #10b981; top: 0; display: none; animation: scan 2s infinite ease-in-out; }
-        @keyframes scan { 0% { top: 0%; } 100% { top: 100%; } }
-        .btn { padding: 12px 24px; border: none; background: #10b981; color: white; border-radius: 6px; font-weight: bold; cursor: pointer; margin: 5px; }
-        .btn-stop { background: #ef4444; }
-        .result-card { max-width: 500px; margin: 20px auto; background: white; padding: 20px; border-radius: 8px; border: 1px solid #ddd; text-align: left; display: none; }
-        .result-card h3 { margin-bottom: 10px; color: #10b981; }
+        .container { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .webcam-box { position: relative; width: 100%; height: 300px; background: #000; border-radius: 8px; overflow: hidden; margin: 15px 0; }
+        #webcam-container canvas { width: 100% !important; height: 100% !important; object-fit: cover; }
+        .btn { padding: 12px 24px; border: none; background: #10b981; color: white; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 1rem; }
+        .btn:disabled { background: #9ca3af; cursor: not-allowed; }
+        .result-box { margin-top: 20px; text-align: left; padding: 15px; background: #eef2f7; border-radius: 8px; display: none; }
+        .result-item { font-size: 1.1rem; font-weight: bold; color: #059669; margin-top: 5px; }
+        .bar-container { background: #ddd; border-radius: 10px; height: 12px; width: 100%; margin-top: 5px; overflow: hidden; }
+        .bar-fill { height: 100%; background: #10b981; width: 0%; transition: width 0.3s; }
     </style>
 </head>
 <body>
 
-    <h2>🌿 AgriGuard AI - Live Scanner</h2>
+    <div class="container">
+        <h2>🌿 AgriGuard AI Scanner</h2>
+        <p style="color: #666; font-size: 0.9rem; margin-top: 5px;">Live Plant Health Detection</p>
 
-    <div class="camera-box">
-        <video id="webcam" autoplay playsinline></video>
-        <div class="scan-line" id="scanLine"></div>
+        <div class="webcam-box" id="webcam-container"></div>
+
+        <button class="btn" id="startBtn" onclick="init()">📷 Start Scanner</button>
+
+        <div class="result-box" id="resultBox">
+            <h3>🔍 Detection Result:</h3>
+            <p><strong>Predicted Status:</strong> <span class="result-item" id="label-name">Scanning...</span></p>
+            <p style="margin-top: 10px;"><strong>Confidence:</strong> <span id="label-acc">0%</span></p>
+            <div class="bar-container">
+                <div class="bar-fill" id="accBar"></div>
+            </div>
+        </div>
     </div>
-
-    <button class="btn" id="startBtn">📷 Start & Scan</button>
-    <button class="btn btn-stop" id="stopBtn">Stop</button>
-
-    <div class="result-card" id="resultCard">
-        <h3>🔍 Real-Time Diagnosis Result</h3>
-        <p><strong>Disease Name:</strong> <span id="diseaseName">Scanning...</span></p>
-        <p><strong>Accuracy Confidence:</strong> <span id="confidence">-</span></p>
-        <p><strong>Action Guidance:</strong> <span id="recommendation">-</span></p>
-    </div>
-
-    <canvas id="canvas" style="display: none;"></canvas>
 
     <script>
-        const video = document.getElementById('webcam');
-        const startBtn = document.getElementById('startBtn');
-        const stopBtn = document.getElementById('stopBtn');
-        const scanLine = document.getElementById('scanLine');
-        const resultCard = document.getElementById('resultCard');
-        const canvas = document.getElementById('canvas');
+        // உங்கள் Teachable Machine Model Link-ஐ இங்கே கொடுக்கவும் (கீழே கொடுக்கப்பட்டுள்ளது மாதிரி link)
+        const URL = "https://teachablemachine.withgoogle.com/models/v_g3y4a0i/"; 
 
-        let stream = null;
-        let intervalId = null;
+        let model, webcam, labelContainer, maxPredictions;
 
-        startBtn.addEventListener('click', async () => {
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                video.srcObject = stream;
-                scanLine.style.display = 'block';
-                resultCard.style.display = 'block';
+        async function init() {
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('startBtn').innerText = "Loading AI Model...";
 
-                // 3 விநாடிக்கு ஒருமுறை லைவ் ஃபிரேம் எடுத்து AI-க்கு அனுப்பும்
-                intervalId = setInterval(captureAndSend, 3000);
-            } catch (err) {
-                alert("Camera Access Denied or Not Supported!");
-            }
-        });
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
 
-        stopBtn.addEventListener('click', () => {
-            if (stream) stream.getTracks().forEach(track => track.stop());
-            scanLine.style.display = 'none';
-            clearInterval(intervalId);
-        });
+            // 1. Load AI Model
+            model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
 
-        async function captureAndSend() {
-            if (!stream) return;
+            // 2. Setup Webcam
+            const flip = true; 
+            webcam = new tmImage.Webcam(300, 300, flip); 
+            await webcam.setup(); 
+            await webcam.play();
+            window.requestAnimationFrame(loop);
 
-            const context = canvas.getContext('2d');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            // 3. Append to DOM
+            document.getElementById("webcam-container").appendChild(webcam.canvas);
+            document.getElementById("resultBox").style.display = "block";
+            document.getElementById('startBtn').innerText = "Scanning Active...";
+        }
 
-            const imageData = canvas.toDataURL('image/jpeg');
+        async function loop() {
+            webcam.update(); 
+            await predict();
+            window.requestAnimationFrame(loop);
+        }
 
-            // Python Flask API-க்கு படத்த அனுப்பும் இடம்
-            try {
-                const response = await fetch('http://127.0.0.1:5000/predict', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: imageData })
-                });
+        async function predict() {
+            // Live-ஆக படத்தைப் பிடித்து Model-க்கு அனுப்பி 100% Real Prediction பெறுகிறது
+            const prediction = await model.predict(webcam.canvas);
+            
+            let highestProb = 0;
+            let bestClass = "";
 
-                const data = await response.json();
-
-                if (data.success) {
-                    document.getElementById('diseaseName').textContent = data.disease;
-                    document.getElementById('confidence').textContent = data.confidence;
-                    document.getElementById('recommendation').textContent = data.recommendation;
+            for (let i = 0; i < maxPredictions; i++) {
+                if (prediction[i].probability > highestProb) {
+                    highestProb = prediction[i].probability;
+                    bestClass = prediction[i].className;
                 }
-            } catch (error) {
-                console.error("API Error:", error);
             }
+
+            const accuracyPercentage = (highestProb * 100).toFixed(1);
+
+            // UI Update
+            document.getElementById("label-name").innerText = bestClass;
+            document.getElementById("label-acc").innerText = accuracyPercentage + "%";
+            document.getElementById("accBar").style.width = accuracyPercentage + "%";
         }
     </script>
 </body>
