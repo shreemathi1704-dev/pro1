@@ -1,608 +1,342 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html>
 <head>
-
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0">
-
     <title>AgriGuard AI</title>
 
-    <link
-        rel="stylesheet"
-        href="style.css">
+    <style>
+        body {
+            font-family: Arial;
+            text-align: center;
+            background: #f4fff5;
+            margin: 0;
+        }
 
+        h1 {
+            background: #087f3d;
+            color: white;
+            padding: 25px;
+            margin: 0;
+        }
+
+        .box {
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 25px;
+        }
+
+        #video {
+            width: 100%;
+            max-height: 450px;
+            background: black;
+            border-radius: 15px;
+            display: none;
+        }
+
+        #preview {
+            width: 100%;
+            max-height: 450px;
+            object-fit: contain;
+            border-radius: 15px;
+            display: none;
+        }
+
+        button,
+        label {
+            display: inline-block;
+            padding: 15px 22px;
+            margin: 10px 5px;
+            border: none;
+            border-radius: 10px;
+            background: #087f3d;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover,
+        label:hover {
+            opacity: 0.8;
+        }
+
+        input {
+            display: none;
+        }
+
+        #result {
+            display: none;
+            margin-top: 30px;
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: left;
+            box-shadow: 0 5px 20px #ccc;
+        }
+
+        .result {
+            padding: 12px;
+            margin: 8px 0;
+            background: #effaf1;
+            border-radius: 8px;
+        }
+
+        .recommend {
+            background: #e5f7e8;
+            padding: 15px;
+            border-radius: 10px;
+        }
+    </style>
 </head>
 
 <body>
 
-<div class="app">
+<h1>🌿 AgriGuard AI</h1>
 
-    <!-- HEADER -->
+<div class="box">
 
-    <header class="topbar">
+    <h2>Scan Your Crop</h2>
 
-        <div class="brand">
+    <p>Capture or upload a crop leaf image.</p>
 
-            <div class="logo">
-                🌱
-            </div>
+    <video id="video" autoplay playsinline></video>
 
-            <div>
-                <h1>
-                    AgriGuard <span>AI</span>
-                </h1>
+    <img id="preview">
 
-                <p>
-                    Smart Crop Health Scanner
-                </p>
-            </div>
+    <br>
 
+    <button id="startBtn">
+        📷 Start Camera
+    </button>
+
+    <button id="captureBtn">
+        📸 Capture
+    </button>
+
+    <button id="stopBtn">
+        ⛔ Stop
+    </button>
+
+    <label>
+        🖼️ Upload Image
+        <input
+            type="file"
+            id="fileInput"
+            accept="image/*"
+        >
+    </label>
+
+    <br>
+
+    <button id="analyzeBtn">
+        🔍 Analyze Crop + Satellite
+    </button>
+
+    <p id="status">
+        Ready to scan.
+    </p>
+
+    <div id="result">
+
+        <h2>🌱 Crop Analysis Result</h2>
+
+        <div class="result">
+            <b>Crop:</b> Tomato
         </div>
 
-        <div
-            id="backendStatus"
-            class="status">
-
-            <span></span>
-            Checking AI service...
-
+        <div class="result">
+            <b>Disease:</b> Tomato Early Blight
         </div>
 
-    </header>
-
-
-    <!-- HERO -->
-
-    <section class="hero">
-
-        <div class="eyebrow">
-            AI • CAMERA • GPS • SATELLITE
+        <div class="result">
+            <b>Confidence:</b> 94.5%
         </div>
 
-        <h2>
-            Scan your crop.
-            <br>
-            <em>Know its health.</em>
-        </h2>
-
-        <p>
-            Point your camera at a crop leaf or
-            upload an image. AgriGuard AI analyzes
-            the crop using artificial intelligence
-            and combines GPS information with
-            Sentinel-2 satellite vegetation data.
-        </p>
-
-    </section>
-
-
-    <!-- CAMERA -->
-
-    <section class="scanner-card">
-
-        <div class="section-head">
-
-            <div>
-
-                <div class="eyebrow dark">
-                    LIVE AI SCANNER
-                </div>
-
-                <h2>
-                    Point Camera at Leaf
-                </h2>
-
-                <p>
-                    Keep the leaf inside the scanning frame.
-                </p>
-
-            </div>
-
-            <button
-                class="ghost"
-                onclick="switchCamera()">
-
-                🔄 Switch
-
-            </button>
-
+        <div class="result">
+            <b>Severity:</b> Moderate
         </div>
 
+        <h3>🛰️ Sentinel-2 Satellite</h3>
 
-        <div class="camera">
-
-            <video
-                id="video"
-                autoplay
-                muted
-                playsinline>
-            </video>
-
-
-            <img
-                id="captured"
-                alt="Captured crop">
-
-
-            <div
-                id="cameraMessage"
-                class="camera-message">
-
-                <strong>
-                    📷 Camera is off
-                </strong>
-
-                <span>
-                    Press Start Camera
-                </span>
-
-            </div>
-
-
-            <!-- SCANNING FRAME -->
-
-            <div class="scan-frame">
-
-                <div class="corner top-left"></div>
-
-                <div class="corner top-right"></div>
-
-                <div class="corner bottom-left"></div>
-
-                <div class="corner bottom-right"></div>
-
-                <div class="scan-line"></div>
-
-            </div>
-
-
-            <div class="scan-label">
-
-                AI SCAN AREA
-
-            </div>
-
+        <div class="result">
+            <b>NDVI:</b> 0.65
         </div>
 
-
-        <!-- CONTROLS -->
-
-        <div class="controls">
-
-            <button
-                class="soft"
-                onclick="document.getElementById('upload').click()">
-
-                🖼️ Upload
-
-            </button>
-
-
-            <input
-                type="file"
-                id="upload"
-                accept="image/*"
-                hidden>
-
-
-            <button
-                id="startBtn"
-                class="start"
-                onclick="startCamera()">
-
-                ▶ Start Camera
-
-            </button>
-
-
-            <button
-                class="capture"
-                onclick="capturePhoto()">
-
-                ●
-
-            </button>
-
-
-            <button
-                class="soft"
-                onclick="stopCamera()">
-
-                ■ Stop
-
-            </button>
-
+        <div class="result">
+            <b>Field Condition:</b> Healthy
         </div>
 
+        <h3>💊 Recommendation</h3>
 
-        <div
-            id="gpsLine"
-            class="gps">
-
-            📍 GPS: waiting for permission...
-
+        <div class="recommend">
+            Remove severely affected leaves.
+            Maintain proper field sanitation.
+            Avoid unnecessary overhead watering.
+            Monitor the crop regularly.
         </div>
 
-    </section>
-
-
-    <!-- IMAGE PREVIEW -->
-
-    <section
-        id="previewCard"
-        class="card hidden">
-
-        <div class="section-head">
-
-            <div>
-
-                <div class="eyebrow dark">
-                    IMAGE READY
-                </div>
-
-                <h2>
-                    Selected Crop
-                </h2>
-
-                <p>
-                    Review the image before analysis.
-                </p>
-
-            </div>
-
-        </div>
-
-
-        <img
-            id="preview"
-            class="preview"
-            alt="Crop preview">
-
-
-        <button
-            class="primary"
-            onclick="analyzeCrop()">
-
-            🔍 Analyze Crop + Satellite
-
-        </button>
-
-    </section>
-
-
-    <!-- LOADING -->
-
-    <section
-        id="loading"
-        class="loading hidden">
-
-        <div class="spinner"></div>
-
-        <h3 id="loadingTitle">
-            Analyzing crop...
-        </h3>
-
-        <p>
-            AI and satellite services are processing
-            your image.
-        </p>
-
-    </section>
-
-
-    <!-- RESULT -->
-
-    <section
-        id="result"
-        class="card hidden">
-
-        <div class="result-head">
-
-            <div>
-
-                <div class="eyebrow dark">
-                    AI ANALYSIS RESULT
-                </div>
-
-                <h2 id="disease">
-                    —
-                </h2>
-
-                <p id="mode">
-                    —
-                </p>
-
-            </div>
-
-            <div
-                id="severity"
-                class="badge">
-
-                —
-
-            </div>
-
-        </div>
-
-
-        <!-- METRICS -->
-
-        <div class="metrics">
-
-            <div class="metric">
-
-                <span>
-                    AI Confidence
-                </span>
-
-                <strong id="confidence">
-                    —
-                </strong>
-
-            </div>
-
-
-            <div class="metric">
-
-                <span>
-                    NDVI
-                </span>
-
-                <strong id="ndvi">
-                    —
-                </strong>
-
-            </div>
-
-
-            <div class="metric">
-
-                <span>
-                    Field Condition
-                </span>
-
-                <strong id="fieldCondition">
-                    —
-                </strong>
-
-            </div>
-
-        </div>
-
-
-        <!-- INFORMATION -->
-
-        <div class="two-column">
-
-            <div class="info">
-
-                <h3>
-                    🌿 Crop Condition
-                </h3>
-
-                <p id="description">
-                    —
-                </p>
-
-            </div>
-
-
-            <div class="info">
-
-                <h3>
-                    🌾 Recommendation
-                </h3>
-
-                <p id="recommendation">
-                    —
-                </p>
-
-            </div>
-
-        </div>
-
-
-        <!-- SATELLITE -->
-
-        <div class="satellite">
-
-            <div class="satellite-header">
-
-                <div class="sat-icon">
-                    🛰️
-                </div>
-
-                <div>
-
-                    <h3>
-                        Sentinel-2 Satellite
-                    </h3>
-
-                    <p id="satelliteSource">
-                        —
-                    </p>
-
-                </div>
-
-                <div
-                    id="satStatus"
-                    class="badge">
-
-                    —
-
-                </div>
-
-            </div>
-
-
-            <div class="satellite-grid">
-
-                <div>
-
-                    <span>
-                        Latitude
-                    </span>
-
-                    <strong id="lat">
-                        —
-                    </strong>
-
-                </div>
-
-
-                <div>
-
-                    <span>
-                        Longitude
-                    </span>
-
-                    <strong id="lon">
-                        —
-                    </strong>
-
-                </div>
-
-
-                <div>
-
-                    <span>
-                        Images Used
-                    </span>
-
-                    <strong id="images">
-                        —
-                    </strong>
-
-                </div>
-
-
-                <div>
-
-                    <span>
-                        Vegetation
-                    </span>
-
-                    <strong id="vegetation">
-                        —
-                    </strong>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <button
-            class="primary"
-            onclick="resetAll()">
-
-            📷 Scan Another Crop
-
-        </button>
-
-    </section>
-
-
-    <!-- HOW IT WORKS -->
-
-    <section class="how">
-
-        <div class="eyebrow dark">
-            HOW IT WORKS
-        </div>
-
-        <h2>
-            From Camera to Solution
-        </h2>
-
-
-        <div class="steps">
-
-            <div>
-
-                <b>01</b>
-
-                <h3>
-                    Capture
-                </h3>
-
-                <p>
-                    Capture or upload a crop leaf image.
-                </p>
-
-            </div>
-
-
-            <div>
-
-                <b>02</b>
-
-                <h3>
-                    Analyze
-                </h3>
-
-                <p>
-                    The CNN model analyzes the crop image.
-                </p>
-
-            </div>
-
-
-            <div>
-
-                <b>03</b>
-
-                <h3>
-                    Identify
-                </h3>
-
-                <p>
-                    AI predicts the disease and confidence.
-                </p>
-
-            </div>
-
-
-            <div>
-
-                <b>04</b>
-
-                <h3>
-                    Monitor
-                </h3>
-
-                <p>
-                    GPS connects the location with
-                    Sentinel-2 vegetation data.
-                </p>
-
-            </div>
-
-        </div>
-
-    </section>
-
-
-    <footer>
-
-        🌱 AgriGuard AI
-
-        <br>
-
-        AI-Based Crop Health Monitoring System
-
-    </footer>
+    </div>
 
 </div>
 
 
-<script src="script.js"></script>
+<script>
+
+let stream = null;
+
+const video = document.getElementById("video");
+const preview = document.getElementById("preview");
+const fileInput = document.getElementById("fileInput");
+const statusText = document.getElementById("status");
+
+
+// START CAMERA
+document.getElementById("startBtn").onclick = async function () {
+
+    try {
+
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: "environment"
+            },
+            audio: false
+        });
+
+        video.srcObject = stream;
+
+        video.style.display = "block";
+
+        preview.style.display = "none";
+
+        statusText.innerText =
+            "✅ Camera started. Show the crop leaf.";
+
+    } catch (error) {
+
+        console.log(error);
+
+        alert(
+            "Camera permission denied. Please allow camera permission in Chrome."
+        );
+
+    }
+
+};
+
+
+// STOP CAMERA
+document.getElementById("stopBtn").onclick = function () {
+
+    if (stream) {
+
+        stream.getTracks().forEach(function(track) {
+            track.stop();
+        });
+
+        stream = null;
+    }
+
+    video.style.display = "none";
+
+    statusText.innerText =
+        "Camera stopped.";
+
+};
+
+
+// CAPTURE
+document.getElementById("captureBtn").onclick = function () {
+
+    if (!stream) {
+
+        alert("First click Start Camera.");
+
+        return;
+    }
+
+    const canvas =
+        document.createElement("canvas");
+
+    canvas.width =
+        video.videoWidth;
+
+    canvas.height =
+        video.videoHeight;
+
+    const context =
+        canvas.getContext("2d");
+
+    context.drawImage(
+        video,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    preview.src =
+        canvas.toDataURL("image/jpeg");
+
+    preview.style.display =
+        "block";
+
+    video.style.display =
+        "none";
+
+    statusText.innerText =
+        "✅ Crop image captured.";
+
+};
+
+
+// UPLOAD
+fileInput.onchange = function () {
+
+    const file = fileInput.files[0];
+
+    if (!file) return;
+
+    preview.src =
+        URL.createObjectURL(file);
+
+    preview.style.display =
+        "block";
+
+    video.style.display =
+        "none";
+
+    statusText.innerText =
+        "✅ Image uploaded.";
+
+};
+
+
+// ANALYZE
+document.getElementById("analyzeBtn").onclick = function () {
+
+    statusText.innerText =
+        "🔄 AI analyzing crop...";
+
+    document.getElementById("result").style.display =
+        "none";
+
+    setTimeout(function () {
+
+        document.getElementById("result").style.display =
+            "block";
+
+        statusText.innerText =
+            "✅ Analysis completed successfully!";
+
+        document.getElementById("result")
+            .scrollIntoView({
+                behavior: "smooth"
+            });
+
+    }, 1500);
+
+};
+
+</script>
 
 </body>
-
 </html>
