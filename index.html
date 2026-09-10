@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <title>AgriGuard AI</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css">
+
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- HEADER -->
+
+    <header class="topbar">
+
+        <div class="brand">
+
+            <div class="logo">
+                🌱
+            </div>
+
+            <div>
+                <h1>
+                    AgriGuard <span>AI</span>
+                </h1>
+
+                <p>
+                    Smart Crop Health Scanner
+                </p>
+            </div>
+
+        </div>
+
+        <div
+            id="backendStatus"
+            class="status">
+
+            <span></span>
+            Checking AI service...
+
+        </div>
+
+    </header>
+
+
+    <!-- HERO -->
+
+    <section class="hero">
+
+        <div class="eyebrow">
+            AI • CAMERA • GPS • SATELLITE
+        </div>
+
+        <h2>
+            Scan your crop.
+            <br>
+            <em>Know its health.</em>
+        </h2>
+
+        <p>
+            Point your camera at a crop leaf or
+            upload an image. AgriGuard AI analyzes
+            the crop using artificial intelligence
+            and combines GPS information with
+            Sentinel-2 satellite vegetation data.
+        </p>
+
+    </section>
+
+
+    <!-- CAMERA -->
+
+    <section class="scanner-card">
+
+        <div class="section-head">
+
+            <div>
+
+                <div class="eyebrow dark">
+                    LIVE AI SCANNER
+                </div>
+
+                <h2>
+                    Point Camera at Leaf
+                </h2>
+
+                <p>
+                    Keep the leaf inside the scanning frame.
+                </p>
+
+            </div>
+
+            <button
+                class="ghost"
+                onclick="switchCamera()">
+
+                🔄 Switch
+
+            </button>
+
+        </div>
+
+
+        <div class="camera">
+
+            <video
+                id="video"
+                autoplay
+                muted
+                playsinline>
+            </video>
+
+
+            <img
+                id="captured"
+                alt="Captured crop">
+
+
+            <div
+                id="cameraMessage"
+                class="camera-message">
+
+                <strong>
+                    📷 Camera is off
+                </strong>
+
+                <span>
+                    Press Start Camera
+                </span>
+
+            </div>
+
+
+            <!-- SCANNING FRAME -->
+
+            <div class="scan-frame">
+
+                <div class="corner top-left"></div>
+
+                <div class="corner top-right"></div>
+
+                <div class="corner bottom-left"></div>
+
+                <div class="corner bottom-right"></div>
+
+                <div class="scan-line"></div>
+
+            </div>
+
+
+            <div class="scan-label">
+
+                AI SCAN AREA
+
+            </div>
+
+        </div>
+
+
+        <!-- CONTROLS -->
+
+        <div class="controls">
+
+            <button
+                class="soft"
+                onclick="document.getElementById('upload').click()">
+
+                🖼️ Upload
+
+            </button>
+
+
+            <input
+                type="file"
+                id="upload"
+                accept="image/*"
+                hidden>
+
+
+            <button
+                id="startBtn"
+                class="start"
+                onclick="startCamera()">
+
+                ▶ Start Camera
+
+            </button>
+
+
+            <button
+                class="capture"
+                onclick="capturePhoto()">
+
+                ●
+
+            </button>
+
+
+            <button
+                class="soft"
+                onclick="stopCamera()">
+
+                ■ Stop
+
+            </button>
+
+        </div>
+
+
+        <div
+            id="gpsLine"
+            class="gps">
+
+            📍 GPS: waiting for permission...
+
+        </div>
+
+    </section>
+
+
+    <!-- IMAGE PREVIEW -->
+
+    <section
+        id="previewCard"
+        class="card hidden">
+
+        <div class="section-head">
+
+            <div>
+
+                <div class="eyebrow dark">
+                    IMAGE READY
+                </div>
+
+                <h2>
+                    Selected Crop
+                </h2>
+
+                <p>
+                    Review the image before analysis.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <img
+            id="preview"
+            class="preview"
+            alt="Crop preview">
+
+
+        <button
+            class="primary"
+            onclick="analyzeCrop()">
+
+            🔍 Analyze Crop + Satellite
+
+        </button>
+
+    </section>
+
+
+    <!-- LOADING -->
+
+    <section
+        id="loading"
+        class="loading hidden">
+
+        <div class="spinner"></div>
+
+        <h3 id="loadingTitle">
+            Analyzing crop...
+        </h3>
+
+        <p>
+            AI and satellite services are processing
+            your image.
+        </p>
+
+    </section>
+
+
+    <!-- RESULT -->
+
+    <section
+        id="result"
+        class="card hidden">
+
+        <div class="result-head">
+
+            <div>
+
+                <div class="eyebrow dark">
+                    AI ANALYSIS RESULT
+                </div>
+
+                <h2 id="disease">
+                    —
+                </h2>
+
+                <p id="mode">
+                    —
+                </p>
+
+            </div>
+
+            <div
+                id="severity"
+                class="badge">
+
+                —
+
+            </div>
+
+        </div>
+
+
+        <!-- METRICS -->
+
+        <div class="metrics">
+
+            <div class="metric">
+
+                <span>
+                    AI Confidence
+                </span>
+
+                <strong id="confidence">
+                    —
+                </strong>
+
+            </div>
+
+
+            <div class="metric">
+
+                <span>
+                    NDVI
+                </span>
+
+                <strong id="ndvi">
+                    —
+                </strong>
+
+            </div>
+
+
+            <div class="metric">
+
+                <span>
+                    Field Condition
+                </span>
+
+                <strong id="fieldCondition">
+                    —
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <!-- INFORMATION -->
+
+        <div class="two-column">
+
+            <div class="info">
+
+                <h3>
+                    🌿 Crop Condition
+                </h3>
+
+                <p id="description">
+                    —
+                </p>
+
+            </div>
+
+
+            <div class="info">
+
+                <h3>
+                    🌾 Recommendation
+                </h3>
+
+                <p id="recommendation">
+                    —
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- SATELLITE -->
+
+        <div class="satellite">
+
+            <div class="satellite-header">
+
+                <div class="sat-icon">
+                    🛰️
+                </div>
+
+                <div>
+
+                    <h3>
+                        Sentinel-2 Satellite
+                    </h3>
+
+                    <p id="satelliteSource">
+                        —
+                    </p>
+
+                </div>
+
+                <div
+                    id="satStatus"
+                    class="badge">
+
+                    —
+
+                </div>
+
+            </div>
+
+
+            <div class="satellite-grid">
+
+                <div>
+
+                    <span>
+                        Latitude
+                    </span>
+
+                    <strong id="lat">
+                        —
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Longitude
+                    </span>
+
+                    <strong id="lon">
+                        —
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Images Used
+                    </span>
+
+                    <strong id="images">
+                        —
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Vegetation
+                    </span>
+
+                    <strong id="vegetation">
+                        —
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <button
+            class="primary"
+            onclick="resetAll()">
+
+            📷 Scan Another Crop
+
+        </button>
+
+    </section>
+
+
+    <!-- HOW IT WORKS -->
+
+    <section class="how">
+
+        <div class="eyebrow dark">
+            HOW IT WORKS
+        </div>
+
+        <h2>
+            From Camera to Solution
+        </h2>
+
+
+        <div class="steps">
+
+            <div>
+
+                <b>01</b>
+
+                <h3>
+                    Capture
+                </h3>
+
+                <p>
+                    Capture or upload a crop leaf image.
+                </p>
+
+            </div>
+
+
+            <div>
+
+                <b>02</b>
+
+                <h3>
+                    Analyze
+                </h3>
+
+                <p>
+                    The CNN model analyzes the crop image.
+                </p>
+
+            </div>
+
+
+            <div>
+
+                <b>03</b>
+
+                <h3>
+                    Identify
+                </h3>
+
+                <p>
+                    AI predicts the disease and confidence.
+                </p>
+
+            </div>
+
+
+            <div>
+
+                <b>04</b>
+
+                <h3>
+                    Monitor
+                </h3>
+
+                <p>
+                    GPS connects the location with
+                    Sentinel-2 vegetation data.
+                </p>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <footer>
+
+        🌱 AgriGuard AI
+
+        <br>
+
+        AI-Based Crop Health Monitoring System
+
+    </footer>
+
+</div>
+
+
+<script src="script.js"></script>
+
+</body>
+
+</html>
