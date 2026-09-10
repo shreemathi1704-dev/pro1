@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CropGuard AI — Instant Leaf Scan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Work+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --moss: #2B4736; --moss-dark: #1B2E22; --sprout: #6E9C4F; --sprout-light: #E7EFDE;
+  --soil: #6B4A34; --paper: #F6F2E9; --paper-raised: #FFFFFF; --ink: #22261F;
+  --ink-soft: #5B5E52; --clay: #C4622D; --clay-light: #F5E1D3; --line: #DDD6C6; --radius: 10px;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: 'Work Sans', sans-serif; color: var(--ink); background: var(--paper); line-height: 1.6; }
+h1, h2, h3, h4 { font-family: 'Fraunces', serif; color: var(--moss-dark); margin: 0 0 0.5em; font-weight: 500; }
+h1 { font-size: 2.2rem; line-height: 1.15; }
+h2 { font-size: 1.5rem; }
+p { margin: 0 0 1em; }
+.muted { color: var(--ink-soft); font-size: 0.92rem; }
+.wrap { max-width: 1000px; margin: 0 auto; padding: 0 24px; }
+.topbar { background: var(--paper); border-bottom: 1px solid var(--line); padding: 18px 0; }
+.brand { display: flex; align-items: center; gap: 8px; font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.05rem; color: var(--moss-dark); }
+.badge { background: var(--clay-light); color: var(--clay); font-size: 0.72rem; padding: 3px 10px; border-radius: 20px; margin-left: 10px; font-family: 'Work Sans'; font-weight: 500; }
+.hero { padding: 40px 0 20px; }
+.lede { font-size: 1rem; color: var(--ink-soft); max-width: 60ch; }
+.scan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; padding: 20px 0 60px; }
+.upload-card, .result-card { background: var(--paper-raised); border: 1px solid var(--line); border-radius: 14px; padding: 26px; }
+.dropzone { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+  border: 2px dashed var(--line); border-radius: var(--radius); padding: 30px 20px; min-height: 180px;
+  cursor: pointer; color: var(--ink-soft); margin: 16px 0 8px; }
+.dropzone:hover { border-color: var(--sprout); }
+.dropzone svg { margin-bottom: 10px; color: var(--soil); }
+.dropzone img { display: none; max-width: 100%; max-height: 220px; border-radius: 8px; }
+.dropzone.has-image #dzEmpty { display: none; }
+.dropzone.has-image img { display: block; }
+.file-name { font-size: 0.85rem; color: var(--ink-soft); min-height: 1.2em; }
+.btn { display: inline-block; padding: 12px 22px; border-radius: var(--radius); font-size: 0.95rem;
+  text-decoration: none; font-weight: 500; cursor: pointer; border: 1px solid transparent; font-family: inherit; }
+.btn-primary { background: var(--moss); color: #fff; width: 100%; text-align: center; margin-top: 14px; }
+.btn-primary:hover { background: var(--moss-dark); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.loading { display: none; align-items: center; gap: 10px; margin-top: 14px; font-size: 0.9rem; color: var(--ink-soft); }
+.loading.active { display: flex; }
+.spinner { width: 16px; height: 16px; border: 2px solid var(--line); border-top-color: var(--moss); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.result-card { display: none; }
+.result-card.active { display: block; }
+.result-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.severity-pill { background: var(--clay-light); color: var(--clay); font-size: 0.8rem; font-weight: 500; padding: 5px 12px; border-radius: 20px; white-space: nowrap; }
+.severity-pill.low { background: var(--sprout-light); color: var(--moss); }
+.result-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 0.92rem; }
+.result-block { margin-top: 16px; }
+.result-block h4 { font-family: 'Work Sans'; font-size: 0.8rem; color: var(--soil); margin-bottom: 4px; font-weight: 500; }
+.result-block p { font-size: 0.92rem; margin: 0; }
+.confidence-bar { height: 6px; background: var(--line); border-radius: 4px; overflow: hidden; margin-top: 6px; }
+.confidence-fill { height: 100%; background: var(--sprout); }
+.notice { background: var(--sprout-light); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; font-size: 0.85rem; color: var(--moss-dark); margin-bottom: 24px; }
+.footer { padding: 24px 0; text-align: center; color: var(--ink-soft); font-size: 0.82rem; }
+@media (max-width: 760px) { .scan-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 2C7 2 4 6 4 11c0 5 3.5 9 8 11 4.5-2 8-6 8-11 0-5-3-9-8-9Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        <path d="M12 8v8M12 8c-1.8 0-3 1.2-3 3M12 8c1.8 0 3 1.2 3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+      <span>CropGuard AI</span>
+      <span class="badge">Instant demo build</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <h1>Scan a tomato leaf, get a prediction right now</h1>
+      <p class="lede">Upload a photo and this page analyzes leaf color, spot density and discoloration
+        directly in your browser to flag Early Blight, Late Blight, or a healthy leaf.</p>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <div class="notice">
+      <strong>How this works:</strong> this build runs a pixel-analysis heuristic client-side, so you can
+      test the full experience without training a model or running a server. Swap in the trained
+      MobileNetV2 CNN from the full CropGuard AI project (FastAPI backend) for production-grade accuracy.
+    </div>
+  </div>
+
+  <section class="scan-grid wrap">
+    <div class="upload-card">
+      <h2>Upload leaf photo</h2>
+      <p class="muted">JPG or PNG. A single leaf, filling most of the frame, works best.</p>
+
+      <label class="dropzone" id="dropzone" for="imageInput">
+        <input type="file" id="imageInput" accept="image/*" hidden>
+        <div id="dzEmpty">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 16V4M12 4l-4 4M12 4l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          <p>Drop a leaf photo here, or click to choose one</p>
+        </div>
+        <img id="preview" alt="Selected leaf preview">
+      </label>
+
+      <p id="fileName" class="file-name"></p>
+
+      <button id="detectButton" class="btn btn-primary">Analyze leaf</button>
+
+      <div id="loadingSection" class="loading">
+        <span class="spinner" aria-hidden="true"></span>
+        Analyzing pixels…
+      </div>
+    </div>
+
+    <div class="result-card" id="resultSection">
+      <div class="result-head">
+        <h2 id="disease">—</h2>
+        <span class="severity-pill" id="severityPill"><span id="severity">—</span></span>
+      </div>
+
+      <div class="result-row">
+        <span class="muted">Crop</span><span id="crop">Tomato</span>
+      </div>
+      <div class="result-row" style="border-bottom:none; flex-direction:column; align-items:stretch;">
+        <div style="display:flex; justify-content:space-between;">
+          <span class="muted">Confidence</span><span id="confidence">—</span>
+        </div>
+        <div class="confidence-bar"><div class="confidence-fill" id="confidenceFill" style="width:0%"></div></div>
+      </div>
+
+      <div class="result-block">
+        <h4>Likely cause</h4>
+        <p id="cause">—</p>
+      </div>
+      <div class="result-block">
+        <h4>Recommended action</h4>
+        <p id="solution">—</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap"><p>CropGuard AI — demo build for SIH26131, Agriculture, FoodTech &amp; Rural Development.</p></div>
+</footer>
+
+<canvas id="workCanvas" width="120" height="120" style="display:none;"></canvas>
+
+<script>
+const imageInput = document.getElementById("imageInput");
+const dropzone = document.getElementById("dropzone");
+const preview = document.getElementById("preview");
+const fileName = document.getElementById("fileName");
+const detectButton = document.getElementById("detectButton");
+const loadingSection = document.getElementById("loadingSection");
+const resultSection = document.getElementById("resultSection");
+const severityPill = document.getElementById("severityPill");
+const workCanvas = document.getElementById("workCanvas");
+const ctx = workCanvas.getContext("2d", { willReadFrequently: true });
+
+const DISEASE_INFO = {
+  "Tomato_Early_Blight": {
+    disease: "Tomato Early Blight", severity: "Moderate",
+    cause: "Fungal infection (Alternaria solani), often triggered by warm, humid conditions and older lower leaves.",
+    solution: "Remove and destroy affected leaves. Improve air circulation between plants and avoid overhead watering. Apply a copper-based or chlorothalonil fungicide."
+  },
+  "Tomato_Late_Blight": {
+    disease: "Tomato Late Blight", severity: "High",
+    cause: "Oomycete pathogen (Phytophthora infestans), spreads fast in cool, wet weather via water-soaked lesions.",
+    solution: "Remove and destroy infected plant parts immediately. Reduce leaf moisture and apply a systemic fungicide. Check neighboring plants daily — this spreads quickly."
+  },
+  "Tomato_Healthy": {
+    disease: "Healthy Tomato Leaf", severity: "None",
+    cause: "No signs of fungal or bacterial infection detected in the sampled leaf area.",
+    solution: "Continue regular watering, balanced fertilization, and routine visual monitoring."
+  }
+};
+
+let selectedFile = null;
+
+imageInput.addEventListener("change", () => {
+  const file = imageInput.files[0];
+  if (!file) return;
+  selectedFile = file;
+  fileName.textContent = file.name;
+  preview.src = URL.createObjectURL(file);
+  dropzone.classList.add("has-image");
+  resultSection.classList.remove("active");
+});
+
+dropzone.addEventListener("dragover", (e) => { e.preventDefault(); dropzone.style.borderColor = "#6E9C4F"; });
+dropzone.addEventListener("dragleave", () => { dropzone.style.borderColor = ""; });
+dropzone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  dropzone.style.borderColor = "";
+  if (e.dataTransfer.files.length) {
+    imageInput.files = e.dataTransfer.files;
+    imageInput.dispatchEvent(new Event("change"));
+  }
+});
+
+detectButton.addEventListener("click", async () => {
+  if (!selectedFile) { alert("Please select a leaf image first."); return; }
+
+  loadingSection.classList.add("active");
+  resultSection.classList.remove("active");
+  detectButton.disabled = true;
+
+  await new Promise(r => setTimeout(r, 500));
+
+  try {
+    const features = await analyzeImage(selectedFile);
+    const result = classify(features);
+    renderResult(result);
+  } catch (err) {
+    console.error(err);
+    alert("Could not analyze that image. Try a different photo.");
+  } finally {
+    loadingSection.classList.remove("active");
+    detectButton.disabled = false;
+  }
+});
+
+function analyzeImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const size = 120;
+      workCanvas.width = size;
+      workCanvas.height = size;
+      ctx.drawImage(img, 0, 0, size, size);
+      const data = ctx.getImageData(0, 0, size, size).data;
+
+      let green = 0, yellow = 0, brown = 0, dark = 0, total = 0;
+
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i], g = data[i + 1], b = data[i + 2];
+        const brightness = (r + g + b) / 3;
+        total++;
+
+        if (g > r + 15 && g > b + 15 && brightness > 60) {
+          green++;
+        } else if (r > 140 && g > 110 && b < 100 && r > b + 40) {
+          yellow++;
+        } else if (brightness < 90 && r >= g && r >= b) {
+          brown++;
+        } else if (brightness < 55) {
+          dark++;
+        }
+      }
+
+      resolve({
+        greenRatio: green / total,
+        yellowRatio: yellow / total,
+        brownRatio: brown / total,
+        darkRatio: dark / total
+      });
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+function classify(f) {
+  const scoreEarly = f.brownRatio * 0.55 + f.darkRatio * 0.35 + f.yellowRatio * 0.15;
+  const scoreLate = f.darkRatio * 0.5 + f.brownRatio * 0.3 + f.yellowRatio * 0.25;
+  const scoreHealthy = f.greenRatio * 1.0 - (f.brownRatio + f.darkRatio) * 0.4;
+
+  const raw = { Tomato_Early_Blight: scoreEarly, Tomato_Late_Blight: scoreLate, Tomato_Healthy: Math.max(scoreHealthy, 0) };
+
+  const temp = 3.2;
+  const exps = Object.entries(raw).map(([k, v]) => [k, Math.exp(v * temp)]);
+  const sum = exps.reduce((s, [, v]) => s + v, 0);
+  const probs = Object.fromEntries(exps.map(([k, v]) => [k, v / sum]));
+
+  const [predictedClass, confidence] = Object.entries(probs).sort((a, b) => b[1] - a[1])[0];
+
+  return {
+    className: predictedClass,
+    confidence: Math.round(confidence * 1000) / 10
+  };
+}
+
+function renderResult(result) {
+  const info = DISEASE_INFO[result.className];
+
+  document.getElementById("disease").textContent = info.disease;
+  document.getElementById("confidence").textContent = result.confidence + "%";
+  document.getElementById("confidenceFill").style.width = result.confidence + "%";
+  document.getElementById("severity").textContent = info.severity;
+  document.getElementById("cause").textContent = info.cause;
+  document.getElementById("solution").textContent = info.solution;
+
+  severityPill.classList.remove("low");
+  if (info.severity === "None" || info.severity === "Low") severityPill.classList.add("low");
+
+  resultSection.classList.add("active");
+}
+</script>
+</body>
+</html>
